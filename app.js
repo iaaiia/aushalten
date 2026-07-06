@@ -74,6 +74,18 @@ const state = {
   history: JSON.parse(localStorage.getItem('ah_history') || '[]'),
 };
 
+const TASKS_BY_ID = Object.fromEntries(TASKS.map(t => [t.id, t]));
+
+// Fixed rotation covering every task once per 16-day cycle, arranged so the
+// same task type (hold/breath/timer/draw) never appears on two days in a row
+// (including across the cycle wrap).
+const TASK_ORDER = [
+  'draw-line', 'cold',    'draw-circle', 'wait',
+  'draw-tri',  'sit',     'draw-face',   'still',
+  'draw-feel', 'boredom', 'notice',      'hold',
+  'draw-wave', 'silence', 'observe',     'hold2',
+];
+
 function todayKey(offset = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -86,11 +98,14 @@ function markDone(key) {
     localStorage.setItem('ah_history', JSON.stringify(state.history));
   }
 }
+function dayIndex(d) {
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
 function getTask(offset) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  const seed = d.getDate() + d.getMonth() * 31;
-  return TASKS[seed % TASKS.length];
+  const idx = ((dayIndex(d) % TASK_ORDER.length) + TASK_ORDER.length) % TASK_ORDER.length;
+  return TASKS_BY_ID[TASK_ORDER[idx]];
 }
 
 // ── Render ────────────────────────────────────────────────────────────────
@@ -313,47 +328,170 @@ function drawHTML(task) {
     </div>`;
 }
 
-function bindDraw(task, key) {
-  const canvas = document.getElementById('draw-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const sub = document.getElementById('draw-sub');
-  const fg  = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#F0EDE6';
-
-  // Draw ghost guide
+function drawGhostGuide(ctx, fg, prompt) {
   ctx.save();
   ctx.strokeStyle = fg;
   ctx.lineWidth   = 1;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
   ctx.globalAlpha = 0.1;
-  const p = task.drawPrompt || '';
-  if (p === 'kreis') {
+  if (prompt === 'kreis') {
     ctx.beginPath(); ctx.arc(120, 100, 50, 0, 2 * Math.PI); ctx.stroke();
-  } else if (p === 'dreieck') {
+  } else if (prompt === 'dreieck') {
     ctx.beginPath(); ctx.moveTo(120, 45); ctx.lineTo(175, 155); ctx.lineTo(65, 155); ctx.closePath(); ctx.stroke();
-  } else if (p === 'gesicht') {
+  } else if (prompt === 'gesicht') {
     ctx.beginPath(); ctx.arc(120, 95, 52, 0, 2 * Math.PI); ctx.stroke();
     ctx.beginPath(); ctx.arc(103, 83, 5, 0, 2 * Math.PI); ctx.stroke();
     ctx.beginPath(); ctx.arc(137, 83, 5, 0, 2 * Math.PI); ctx.stroke();
     ctx.beginPath(); ctx.arc(120, 105, 20, 0.2, Math.PI - 0.2); ctx.stroke();
-  } else if (p === 'welle') {
+  } else if (prompt === 'welle') {
     ctx.beginPath(); ctx.moveTo(20, 100);
     ctx.bezierCurveTo(60, 50, 100, 150, 140, 100);
     ctx.bezierCurveTo(180, 50, 210, 130, 220, 100); ctx.stroke();
-  } else if (p === 'strich') {
+  } else if (prompt === 'strich') {
     ctx.beginPath(); ctx.moveTo(30, 100); ctx.lineTo(210, 100); ctx.stroke();
   }
   ctx.restore();
+}
 
-  // Drawing setup
+// ── Shape recognition ────────────────────────────────────────────────────
+// Heuristic checks on the recorded stroke points, so a task only counts as
+// done once the drawing actually resembles the requested shape.
+function distPt(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function pathStats(pts) {
+  let length = 0;
+  for (let i = 1; i < pts.length; i++) length += distPt(pts[i - 1], pts[i]);
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
+  return { length, width: maxX - minX, height: maxY - minY, cx, cy };
+}
+
+function resamplePath(pts, step) {
+  if (pts.length < 2) return pts;
+  const out = [pts[0]];
+  let prev = pts[0], carry = 0;
+  for (let i = 1; i < pts.length; i++) {
+    let cur = pts[i];
+    let segLen = distPt(prev, cur);
+    while (segLen > 0 && carry + segLen >= step) {
+      const t = (step - carry) / segLen;
+      const np = { x: prev.x + (cur.x - prev.x) * t, y: prev.y + (cur.y - prev.y) * t };
+      out.push(np);
+      prev = np;
+      segLen = distPt(prev, cur);
+      carry = 0;
+    }
+    carry += segLen;
+    prev = cur;
+  }
+  return out;
+}
+
+function countCorners(pts, angleThresholdDeg, minGapPx) {
+  const rs = resamplePath(pts, 6);
+  if (rs.length < 5) return 0;
+  const threshold = angleThresholdDeg * Math.PI / 180;
+  const corners = [];
+  for (let i = 1; i < rs.length - 1; i++) {
+    const a = rs[i - 1], b = rs[i], c = rs[i + 1];
+    const v1 = Math.atan2(b.y - a.y, b.x - a.x);
+    const v2 = Math.atan2(c.y - b.y, c.x - b.x);
+    let d = v2 - v1;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    if (Math.abs(d) > threshold) corners.push(b);
+  }
+  const merged = [];
+  for (const c of corners) {
+    if (!merged.length || distPt(merged[merged.length - 1], c) > minGapPx) merged.push(c);
+  }
+  return merged.length;
+}
+
+function checkShape(prompt, pts) {
+  if (pts.length < 8) return false;
+  const stats = pathStats(pts);
+  const diag = Math.hypot(stats.width, stats.height);
+  if (diag < 25 || stats.length < 40) return false;
+
+  if (prompt === 'kreis') {
+    const radii = pts.map(p => Math.hypot(p.x - stats.cx, p.y - stats.cy));
+    const meanR = radii.reduce((a, b) => a + b, 0) / radii.length;
+    if (meanR < 12) return false;
+    const variance = radii.reduce((a, r) => a + (r - meanR) ** 2, 0) / radii.length;
+    const relStd = Math.sqrt(variance) / meanR;
+    let angleTotal = 0, prevAngle = null;
+    for (const p of pts) {
+      const ang = Math.atan2(p.y - stats.cy, p.x - stats.cx);
+      if (prevAngle !== null) {
+        let d = ang - prevAngle;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        angleTotal += d;
+      }
+      prevAngle = ang;
+    }
+    return relStd < 0.4 && Math.abs(angleTotal) > 4.4;
+  }
+
+  if (prompt === 'dreieck') {
+    const corners = countCorners(pts, 35, 18);
+    const closed = distPt(pts[0], pts[pts.length - 1]) < diag * 0.6;
+    return corners >= 2 && corners <= 5 && closed;
+  }
+
+  if (prompt === 'strich') {
+    const a = pts[0], b = pts[pts.length - 1];
+    const lineLen = distPt(a, b);
+    if (lineLen < 50) return false;
+    let maxDevSq = 0;
+    for (const p of pts) {
+      const t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / (lineLen * lineLen);
+      const px = a.x + t * (b.x - a.x), py = a.y + t * (b.y - a.y);
+      const dSq = (p.x - px) ** 2 + (p.y - py) ** 2;
+      if (dSq > maxDevSq) maxDevSq = dSq;
+    }
+    return Math.sqrt(maxDevSq) < lineLen * 0.15;
+  }
+
+  if (prompt === 'welle') {
+    if (stats.width < 70) return false;
+    let extrema = 0, dir = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const dy = pts[i].y - pts[i - 1].y;
+      if (Math.abs(dy) < 0.5) continue;
+      const nd = dy > 0 ? 1 : -1;
+      if (dir !== 0 && nd !== dir) extrema++;
+      dir = nd;
+    }
+    return extrema >= 2;
+  }
+
+  // gesicht / gefühl: offen für interpretation, nur prüfen ob wirklich etwas gezeichnet wurde
+  return true;
+}
+
+function bindDraw(task, key) {
+  const canvas = document.getElementById('draw-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const sub = document.getElementById('draw-sub');
+  const fg  = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#F0EDE6';
+  const prompt = task.drawPrompt || '';
+
+  drawGhostGuide(ctx, fg, prompt);
+
   ctx.strokeStyle = fg;
   ctx.lineWidth   = 1.5;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
   ctx.globalAlpha = 1;
 
-  let drawing = false, hasDrawn = false;
+  let drawing = false, settled = false, points = [];
 
   function getXY(e) {
     const rect = canvas.getBoundingClientRect();
@@ -361,20 +499,49 @@ function bindDraw(task, key) {
     return { x: src.clientX - rect.left, y: src.clientY - rect.top };
   }
 
-  function down(e) { e.preventDefault(); drawing = true; const p = getXY(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function resetCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGhostGuide(ctx, fg, prompt);
+    ctx.strokeStyle = fg;
+    ctx.globalAlpha = 1;
+    points = [];
+  }
+
+  function down(e) {
+    if (settled) return;
+    e.preventDefault();
+    drawing = true;
+    const p = getXY(e);
+    points.push(p);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
   function move(e) {
+    if (settled) return;
     e.preventDefault();
     if (!drawing) return;
     const p = getXY(e);
+    points.push(p);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    if (!hasDrawn) {
-      hasDrawn = true;
+  }
+  function up(e) {
+    if (settled || !drawing) return;
+    drawing = false;
+    if (points.length < 8) return;
+    if (checkShape(prompt, points)) {
+      settled = true;
       if (sub) sub.textContent = 'fertig.';
-      setTimeout(() => { markDone(key); renderDayStrip(); setTimeout(render, 700); }, 2500);
+      setTimeout(() => { markDone(key); renderDayStrip(); setTimeout(render, 700); }, 800);
+    } else {
+      if (sub) sub.textContent = 'hmm — nochmal versuchen.';
+      setTimeout(() => {
+        if (settled) return;
+        resetCanvas();
+        if (sub) sub.textContent = prompt || 'zeichne hier.';
+      }, 1100);
     }
   }
-  function up(e) { drawing = false; }
 
   canvas.addEventListener('mousedown', down);
   canvas.addEventListener('mousemove', move);
