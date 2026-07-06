@@ -1,15 +1,32 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
 :root {
   --bg: #2D4A3E;
   --fg: #F0EDE6;
 }
 
-html { height: 100%; }
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+}
 
 body {
   min-height: 100%;
-  font-family: 'Special Elite', serif;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   background: var(--bg);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
@@ -18,6 +35,7 @@ body {
 
 #app {
   min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -163,7 +181,7 @@ main {
 }
 
 .hold-label {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 13px;
   color: var(--fg);
   opacity: 0.65;
@@ -228,7 +246,7 @@ main {
 }
 
 .timer-big {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 38px;
   letter-spacing: -1px;
   color: var(--fg);
@@ -306,13 +324,13 @@ canvas {
 .day-item.active { opacity: 1; }
 
 .day-name {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 10px;
   color: var(--fg);
   letter-spacing: 0.04em;
 }
 .day-num {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 15px;
   color: var(--fg);
 }
