@@ -369,9 +369,10 @@ canvas {
 }
 
 .swatches {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, 34px);
+  justify-content: space-between;
+  row-gap: 14px;
 }
 
 .swatch {
