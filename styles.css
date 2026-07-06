@@ -301,8 +301,7 @@ canvas {
 /* ── Day strip ── */
 .day-strip-wrap {
   flex-shrink: 0;
-  /* Extra room in a regular Safari tab so content clears the floating tab bar. */
-  padding-bottom: max(90px, env(safe-area-inset-bottom) + 76px);
+  padding-bottom: max(28px, env(safe-area-inset-bottom) + 16px);
   background: var(--bg);
 }
 
