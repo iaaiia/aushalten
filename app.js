@@ -1,12 +1,24 @@
 // ── Themes ────────────────────────────────────────────────────────────────
+const DARK_INK    = '#221F1A';
+const LIGHT_CREAM = '#F0EAE0';
+
 const THEMES = [
-  { bg: '#2D4A3E', fg: '#F0EDE6' },
-  { bg: '#1A1A2E', fg: '#E6E1D8' },
-  { bg: '#3B2A1F', fg: '#F5EFE6' },
-  { bg: '#253545', fg: '#E4EAF0' },
-  { bg: '#3D2F40', fg: '#EDE6F0' },
-  { bg: '#EDE8DF', fg: '#1C251E' },
-  { bg: '#F5F0E8', fg: '#2A1F14' },
+  { name: 'moss',       bg: '#A7B89F', fg: DARK_INK    },
+  { name: 'green mist', bg: '#D7DCD1', fg: DARK_INK    },
+  { name: 'clean',      bg: '#F4F1E8', fg: DARK_INK    },
+  { name: 'twang',      bg: '#CDAD91', fg: DARK_INK    },
+  { name: 'rose',       bg: '#DDAD97', fg: DARK_INK    },
+  { name: 'slate',      bg: '#C4BFB9', fg: DARK_INK    },
+  { name: 'arizona',    bg: '#CA8F73', fg: DARK_INK    },
+  { name: 'natural',    bg: '#DFCFBD', fg: DARK_INK    },
+  { name: 'mauve',      bg: '#845C65', fg: LIGHT_CREAM },
+  { name: 'storm',      bg: '#6D8C8E', fg: LIGHT_CREAM },
+  { name: 'sky',        bg: '#ADC7C8', fg: DARK_INK    },
+  { name: 'home',       bg: '#E3DDCF', fg: DARK_INK    },
+  { name: 'lavendar',   bg: '#CEBEC1', fg: DARK_INK    },
+  { name: 'stone',      bg: '#C6BAAB', fg: DARK_INK    },
+  { name: 'olive',      bg: '#4A5B46', fg: LIGHT_CREAM },
+  { name: 'winkle',     bg: '#97ABC5', fg: DARK_INK    },
 ];
 
 let themeIdx = parseInt(localStorage.getItem('ah_theme') || '0');
