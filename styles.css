@@ -26,7 +26,7 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: pan-x pan-y;
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   background: var(--bg);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
@@ -181,7 +181,7 @@ main {
 }
 
 .hold-label {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 13px;
   color: var(--fg);
   opacity: 0.65;
@@ -246,7 +246,7 @@ main {
 }
 
 .timer-big {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 38px;
   letter-spacing: -1px;
   color: var(--fg);
@@ -324,13 +324,13 @@ canvas {
 .day-item.active { opacity: 1; }
 
 .day-name {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 10px;
   color: var(--fg);
   letter-spacing: 0.04em;
 }
 .day-num {
-  font-family: 'Special Elite', serif;
+  font-family: Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 15px;
   color: var(--fg);
 }
