@@ -19,7 +19,9 @@ const THEMES = [
   { name: 'winkle',     bg: '#97ABC5', fg: DARK_INK    },
 ];
 
-let themeIdx = parseInt(localStorage.getItem('ah_theme') || '0');
+const DEFAULT_THEME_IDX = THEMES.findIndex(t => t.name === 'mauve');
+const storedTheme = localStorage.getItem('ah_theme');
+let themeIdx = storedTheme !== null ? parseInt(storedTheme, 10) : DEFAULT_THEME_IDX;
 
 function applyTheme(idx) {
   const t = THEMES[idx];
