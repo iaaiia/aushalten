@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="entwerfen.">
+<title>entwerfen.</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="wordmark">entwerfen.</span>
+    <button class="icon-btn" id="settings-btn" onclick="openSettings()" aria-label="Einstellungen">⚙</button>
+  </header>
+
+  <main id="main">
+    <div class="panel">
+
+      <section class="block">
+        <div class="block-head">
+          <div class="block-title">Bildgeometrie</div>
+          <div class="block-sub">Skizze, Screenshot oder Foto (optional)</div>
+        </div>
+        <div class="upload-box" id="geo-upload" onclick="document.getElementById('geo-input').click()">
+          <img id="geo-preview" class="upload-preview hidden" alt="">
+          <span class="upload-hint" id="geo-hint">+ Bild hinzufügen</span>
+        </div>
+        <input type="file" id="geo-input" accept="image/*" class="hidden">
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <div class="block-title">Prompt</div>
+        </div>
+        <textarea id="prompt-input" placeholder="Beschreibe das Bild… (Strg+Enter zum Generieren)&#10;Falls ein Bild hochgeladen wurde, dient es als Grundlage für die Bildgeometrie."></textarea>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <div class="block-title">Einstellungen</div>
+        </div>
+        <div class="selects">
+          <select id="category-select">
+            <option value="architekturfotografie außen, realistisches licht, hochwertige materialien">Architekturfotografie (Außen)</option>
+            <option value="architekturfotografie innenraum, realistisches licht, hochwertige materialien">Architekturfotografie (Innen)</option>
+            <option value="konzeptionelle architekturskizze, handgezeichneter stil">Skizze / Konzept</option>
+            <option value="architektur-vogelperspektive, lageplan-ansicht">Vogelperspektive</option>
+          </select>
+          <select id="ratio-select">
+            <option value="1024x1024">Quadrat 1:1</option>
+            <option value="1216x832">Querformat 16:9</option>
+            <option value="832x1216">Hochformat 9:16</option>
+            <option value="1152x896">Standard 4:3</option>
+          </select>
+          <select id="size-select">
+            <option value="1">Bildgröße (Standard)</option>
+            <option value="1.4">Bildgröße (Groß)</option>
+          </select>
+        </div>
+      </section>
+
+      <button class="generate-btn" id="generate-btn" onclick="generate()">Bild generieren</button>
+
+      <section class="result-box" id="result-box">
+        <div class="result-empty" id="result-empty">Ergebnis erscheint hier</div>
+      </section>
+
+      <div class="history-strip" id="history-strip"></div>
+
+    </div>
+  </main>
+</div>
+
+<div class="overlay-bg" id="overlay-bg" onclick="closeSettings()"></div>
+<div class="settings-sheet" id="settings-sheet">
+  <div class="sheet-label">Hugging Face Zugriffstoken</div>
+  <p class="sheet-text">
+    Wird nur lokal in deinem Browser gespeichert und direkt an
+    huggingface.co gesendet, sonst nirgends hin.
+  </p>
+  <input type="password" id="token-input" class="token-input" placeholder="hf_…">
+  <div class="sheet-actions">
+    <a class="token-link" href="https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained" target="_blank" rel="noopener">Token erstellen ↗</a>
+    <button class="save-btn" onclick="saveToken()">Speichern</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
